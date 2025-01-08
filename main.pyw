@@ -8,6 +8,9 @@ class FileManagerApp:
         self.root = root
         self.root.title("ファイルマネージャー")
         
+        self.history = []
+        self.history_index = -1
+
         self.path_label = tk.Label(root, text="現在のパス:")
         self.path_label.pack()
         
@@ -15,8 +18,20 @@ class FileManagerApp:
         self.path_entry.pack()
         self.path_entry.insert(0, os.getcwd())
         
-        self.reload_button = tk.Button(root, text="再度読み込み", command=self.list_directory)
-        self.reload_button.pack()
+        self.button_frame = tk.Frame(root)
+        self.button_frame.pack()
+
+        self.back_button = tk.Button(self.button_frame, text="←", command=self.go_back)
+        self.back_button.pack(side=tk.LEFT)
+
+        self.forward_button = tk.Button(self.button_frame, text="→", command=self.go_forward)
+        self.forward_button.pack(side=tk.LEFT)
+
+        self.down_button = tk.Button(self.button_frame, text="↑", command=self.go_down)
+        self.down_button.pack(side=tk.LEFT)
+
+        self.reload_button = tk.Button(self.button_frame, text="再度読み込み", command=self.list_directory)
+        self.reload_button.pack(side=tk.LEFT)
         
         self.file_list = tk.Listbox(root, width=80, height=20)
         self.file_list.pack()
@@ -38,8 +53,15 @@ class FileManagerApp:
 
         self.list_directory()  # Automatically list directory on startup
 
+    def update_history(self, path):
+        if self.history_index == -1 or self.history[self.history_index] != path:
+            self.history = self.history[:self.history_index + 1]
+            self.history.append(path)
+            self.history_index += 1
+
     def list_directory(self):
         path = self.path_entry.get()
+        self.update_history(path)
         try:
             self.file_list.delete(0, tk.END)
             with os.scandir(path) as entries:
@@ -47,6 +69,26 @@ class FileManagerApp:
                     self.file_list.insert(tk.END, entry.name)
         except FileNotFoundError as e:
             messagebox.showerror("エラー", str(e))
+
+    def go_back(self):
+        if self.history_index > 0:
+            self.history_index -= 1
+            self.path_entry.delete(0, tk.END)
+            self.path_entry.insert(0, self.history[self.history_index])
+            self.list_directory()
+
+    def go_forward(self):
+        if self.history_index < len(self.history) - 1:
+            self.history_index += 1
+            self.path_entry.delete(0, tk.END)
+            self.path_entry.insert(0, self.history[self.history_index])
+            self.list_directory()
+
+    def go_down(self):
+        path = os.path.abspath(os.path.join(self.path_entry.get(), ".."))
+        self.path_entry.delete(0, tk.END)
+        self.path_entry.insert(0, path)
+        self.list_directory()
 
     def read_file(self):
         selected_file = self.file_list.get(tk.ACTIVE)
@@ -57,7 +99,7 @@ class FileManagerApp:
             messagebox.showinfo("ファイルの内容", content)
         except FileNotFoundError as e:
             messagebox.showerror("エラー", str(e))
-    
+
     def create_file(self):
         file_name = simpledialog.askstring("入力", "ファイル名を入力してください:")
         path = os.path.join(self.path_entry.get(), file_name)
@@ -76,7 +118,7 @@ class FileManagerApp:
             self.list_directory()
         except FileNotFoundError as e:
             messagebox.showerror("エラー", str(e))
-    
+
     def copy_file(self):
         src = os.path.join(self.path_entry.get(), self.file_list.get(tk.ACTIVE))
         dest = filedialog.askdirectory(title="コピー先のディレクトリを選択してください")
@@ -86,7 +128,7 @@ class FileManagerApp:
                 self.list_directory()
             except FileNotFoundError as e:
                 messagebox.showerror("エラー", str(e))
-    
+
     def move_file(self):
         src = os.path.join(self.path_entry.get(), self.file_list.get(tk.ACTIVE))
         dest = filedialog.askdirectory(title="移動先のディレクトリを選択してください")
