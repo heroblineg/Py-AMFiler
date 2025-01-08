@@ -2,6 +2,7 @@ import os
 import shutil
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
+import subprocess
 
 class FileManagerApp:
     def __init__(self, root):
@@ -35,23 +36,23 @@ class FileManagerApp:
         
         self.file_list = tk.Listbox(root, width=80, height=20)
         self.file_list.pack()
-        
-        self.read_button = tk.Button(root, text="ファイルを読む", command=self.read_file)
-        self.read_button.pack()
-        
-        self.create_button = tk.Button(root, text="ファイルを作成", command=self.create_file)
-        self.create_button.pack()
-        
-        self.delete_button = tk.Button(root, text="ファイルを削除", command=self.delete_file)
-        self.delete_button.pack()
-        
-        self.copy_button = tk.Button(root, text="ファイルをコピー", command=self.copy_file)
-        self.copy_button.pack()
-        
-        self.move_button = tk.Button(root, text="ファイルを移動", command=self.move_file)
-        self.move_button.pack()
+        self.file_list.bind("<Double-Button-1>", lambda event: self.read_file())
 
+        self.create_context_menu()
+        
         self.list_directory()  # Automatically list directory on startup
+
+    def create_context_menu(self):
+        self.context_menu = tk.Menu(self.root, tearoff=0)
+        self.context_menu.add_command(label="ファイルを読む", command=self.read_file)
+        self.context_menu.add_command(label="ファイルを作成", command=self.create_file)
+        self.context_menu.add_command(label="ファイルを削除", command=self.delete_file)
+        self.context_menu.add_command(label="ファイルをコピー", command=self.copy_file)
+        self.context_menu.add_command(label="ファイルを移動", command=self.move_file)
+        self.file_list.bind("<Button-3>", self.show_context_menu)
+
+    def show_context_menu(self, event):
+        self.context_menu.post(event.x_root, event.y_root)
 
     def update_history(self, path):
         if self.history_index == -1 or self.history[self.history_index] != path:
@@ -94,10 +95,11 @@ class FileManagerApp:
         selected_file = self.file_list.get(tk.ACTIVE)
         path = os.path.join(self.path_entry.get(), selected_file)
         try:
-            with open(path, 'r') as file:
-                content = file.read()
-            messagebox.showinfo("ファイルの内容", content)
-        except FileNotFoundError as e:
+            if os.name == 'nt':  # Windows
+                os.startfile(path)
+            elif os.name == 'posix':  # macOS or Linux
+                subprocess.run(['open', path]) if sys.platform == 'darwin' else subprocess.run(['xdg-open', path])
+        except Exception as e:
             messagebox.showerror("エラー", str(e))
 
     def create_file(self):
