@@ -15,8 +15,8 @@ class FileManagerApp:
         self.path_entry.pack()
         self.path_entry.insert(0, os.getcwd())
         
-        self.list_button = tk.Button(root, text="ディレクトリ一覧", command=self.list_directory)
-        self.list_button.pack()
+        self.reload_button = tk.Button(root, text="再度読み込み", command=self.list_directory)
+        self.reload_button.pack()
         
         self.file_list = tk.Listbox(root, width=80, height=20)
         self.file_list.pack()
@@ -35,6 +35,8 @@ class FileManagerApp:
         
         self.move_button = tk.Button(root, text="ファイルを移動", command=self.move_file)
         self.move_button.pack()
+
+        self.list_directory()  # Automatically list directory on startup
 
     def list_directory(self):
         path = self.path_entry.get()
